@@ -42,7 +42,7 @@
         "title": "Hello World"
       },
       {
-        "command": "code-review-tool.viewHistory",
+        "command": "code-review-tool.viewBranchHistory",
         "title": "选择Review对比分支",
         "icon": {
             "light": "resources/icons/githd.svg",
@@ -53,7 +53,7 @@
     "menus": {
       "editor/title": [
           {
-              "command": "code-review-tool.viewHistory",
+              "command": "code-review-tool.viewBranchHistory",
               "group": "navigation"
           }
       ]

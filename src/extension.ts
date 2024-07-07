@@ -2,14 +2,16 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { CommandCenter } from './commands';
+import { GitService } from './gitService';
 
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	let gitService = new GitService(context);
 
 	console.log('Congratulations, your extension "code-review-tool" is now active!');
-	new CommandCenter(context);
+	new CommandCenter(context, gitService);
 
 
 	// let disposable = vscode.commands.registerCommand('code-review-tool.viewHistory', () => {
