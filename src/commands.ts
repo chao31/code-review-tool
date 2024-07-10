@@ -1,13 +1,11 @@
 import * as vs from 'vscode';
 import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
+import * as path from 'path';
 
-export interface HistoryViewContext {
+import { Model, HistoryViewContext } from './model';
+
+interface RepoPickItem extends vs.QuickPickItem {
   repo: GitRepo;
-  isStash?: boolean;
-  branch: string;
-  specifiedPath?: vs.Uri;
-  line?: number;
-  author?: string;
 }
 
 class EnterShaPickItem implements vs.QuickPickItem {
@@ -33,8 +31,27 @@ async function selectBranch(
     }
     return { label: ref.name || ref.commit, description };
   });
-  if (allowEnterSha) items.unshift(new EnterShaPickItem());
+  if (allowEnterSha) { 
+    items.unshift(new EnterShaPickItem());
+  }
   return items;
+}
+
+async function selectGitRepo(gitService: GitService): Promise<GitRepo | undefined> {
+  const repos: GitRepo[] = gitService.getGitRepos();
+  if (repos.length === 0) {
+    return;
+  }
+  if (repos.length === 1) {
+    return repos[0];
+  }
+  const pickItems: RepoPickItem[] = repos.map(repo => {
+    return { label: path.basename(repo.root), description: repo.root, repo };
+  });
+  const item = await vs.window.showQuickPick(pickItems, {
+    placeHolder: 'Select the git repo'
+  });
+  return item?.repo;
 }
 
 interface Command {
@@ -57,6 +74,7 @@ function command(id: string) {
 export class CommandCenter {
   constructor(
     context: vs.ExtensionContext,
+    private _model: Model,
     private _gitService: GitService,
   ) {
     context.subscriptions.push(
@@ -76,15 +94,22 @@ export class CommandCenter {
   @command('code-review-tool.viewBranchHistory')
   async viewBranchHistory(context?: HistoryViewContext): Promise<void> {
     let placeHolder: string = '选择一个分支做CR的对比';
-    let repo: GitRepo;
 
-    repo = {
-      remoteUrl: 'https://git.woa.com/dwt/dwt',
-      root: '/Users/tangchao/code/tencent/tencent3/dwt/dwt/'
-    };
+    // let repo: GitRepo;
+    // repo = {
+    //   remoteUrl: 'https://git.woa.com/dwt/dwt',
+    //   root: '/Users/tangchao/code/tencent/tencent3/dwt/dwt/'
+    // };
+
+    const repo = await selectGitRepo(this._gitService);
+    if (repo) {
+      await this._viewHistory({ repo, branch: '' });
+    }
+
+    console.log('444repo: ', repo);
 
     
-    vs.window.showQuickPick(selectBranch(this._gitService, repo), { placeHolder }).then(item => {
+    repo && vs.window.showQuickPick(selectBranch(this._gitService, repo), { placeHolder }).then(item => {
       console.log('item: ', item);
       // if (item) {
       //   if (context) {
@@ -95,5 +120,9 @@ export class CommandCenter {
       //   }
       // }
     });
+  }
+
+  private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
+    await this._model.setHistoryViewContext(context);
   }
 }
